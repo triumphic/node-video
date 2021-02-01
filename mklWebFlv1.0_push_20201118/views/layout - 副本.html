@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="cache-control" content="no-cache">
+	<meta http-equiv="pragma" content="no-cache">
+	<meta http-equiv="expires" content="0">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>test</title>
+</head>
+<script type="text/javascript">
+	function startup() {
+		connectButton = document.getElementById('connectButton');
+		disconnectButton = document.getElementById('disconnectButton');
+		sendButton = document.getElementById('sendButton');
+		messageInputBox = document.getElementById('message');
+		receiveBox = document.getElementById('receivebox');
+
+		// Set event listeners for user interface widgets
+
+		connectButton.addEventListener('click', connectPeers, false);
+		disconnectButton.addEventListener('click', disconnectPeers, false);
+		sendButton.addEventListener('click', sendMessage, false);
+	}
+
+	function connectPeers() {
+		// console.log('创建本地节点');
+		//建立本地节点
+		localConnection = new RTCPeerConnection({iceServers: [{ url: "stun:127.0.0.1:8003" }]});
+		// localConnection = new RTCPeerConnection();
+
+		sendChannel = localConnection.createDataChannel("sendChannel");
+		sendChannel.onopen = handleSendChannelStatusChange;
+		sendChannel.onclose = handleSendChannelStatusChange;
+
+		// console.log('创建远程节点');
+		//建立远程节点
+		// remoteConnection = new RTCPeerConnection();
+		// remoteConnection.ondatachannel = receiveChannelCallback;
+
+		//建立ICE候选人
+		localConnection.onicecandidate = function (e) {
+			// console.log('建立本地ICE候选人');
+			// !e.candidate
+			// 	|| remoteConnection.addIceCandidate(e.candidate)
+			// 		.catch(handleCatch);
+		};
+
+		// //建立ICE候选人
+		// remoteConnection.onicecandidate = function (e) {
+		// 	!e.candidate
+		// 		|| localConnection.addIceCandidate(e.candidate)
+		// 			.catch(handleCatch);
+		// 	// console.log('建立远程ICE候选人');
+		// };
+
+		//#region 创建连接offer
+		// 1、首先调用RTCPeerConnection.createOffer() 方法创建 SDP (Session Description Protocol) 字节块用于描述我们期待建立的连接。
+		// 该方法可选地接受一个描述连接限制的对象，例如连接是否必须支持音频、视频或者两者都支持。在我们的简单示例中，没有引入该限制。
+		// 2、如果该offer成功建立, 我们将上述字节块传递给local连接的 RTCPeerConnection.setLocalDescription() 方法。 用于配置local端的连接。
+		// 3、下一步通过调用remoteConnection.RTCPeerConnection.setRemoteDescription()，告知remote节点上述描述，将local 节点连接到到远程 。  
+		// 现在 remoteConnection 了解正在建立的连接。
+		// 4、该是remote 节点回应的时刻了。remote 节点调用 createAnswer() 方法予以回应。 该方法生成一个SDP二进制块，用于描述 remote 节点愿意并且有能力建立的连接。 
+		// 这样的连接配置是两端均可以支持可选项的结合。
+		// 5、应答建立之后，通过调用RTCPeerConnection.setLocalDescription()传入remoteConnection 。该调用完成了remote端连接的建立
+		//  (对于对端的remote 节点而言, 是它的local 端。 这种叙述容易使人困惑，但是看多了您就习惯了。
+		// 6、最终，通过调用localConnection的RTCPeerConnection.setRemoteDescription()方法，本地连接的远端描述被设置为指向remote节点。
+		// 7、catch() 调用一个用于处理任何异常的逻辑。
+		//#endregion
+		localConnection.createOffer()
+			.then(function (offer) {
+				return localConnection.setLocalDescription(offer);
+			})
+			// .then(function () {
+			// 	return remoteConnection.setRemoteDescription(localConnection.localDescription)
+			// })
+			// .then(function () {
+			// 	return remoteConnection.createAnswer()
+			// })
+			// .then(function (answer) {
+			// 	return remoteConnection.setLocalDescription(answer)
+			// })
+			.then(function () {
+				// return localConnection.setRemoteDescription(remoteConnection.localDescription)
+				// return localConnection.setRemoteDescription(localConnection.localDescription)
+			})
+			.catch(handleCatch);
+	};
+
+	function handleLocalAddCandidateSuccess() {
+		connectButton.disabled = true;
+	}
+
+	function handleRemoteAddCandidateSuccess() {
+		disconnectButton.disabled = false;
+	}
+
+	//远程通道打开时的回调
+	function receiveChannelCallback(event) {
+		// console.log('远程通道被打开');
+		receiveChannel = event.channel;
+		receiveChannel.onmessage = handleReceiveMessage;
+		receiveChannel.onopen = handleReceiveChannelStatusChange;
+		receiveChannel.onclose = handleReceiveChannelStatusChange;
+	}
+
+	//本地通道状态变化打开或关闭
+	function handleSendChannelStatusChange(event) {
+		if (sendChannel) {
+			var state = sendChannel.readyState;
+			// console.log('本地通道状态' + state);
+			if (state === "open") {
+				messageInputBox.disabled = false;
+				messageInputBox.focus();
+				sendButton.disabled = false;
+				disconnectButton.disabled = false;
+				connectButton.disabled = true;
+			} else {
+				messageInputBox.disabled = true;
+				sendButton.disabled = true;
+				connectButton.disabled = false;
+				disconnectButton.disabled = true;
+			}
+		}
+	}
+
+	//远程通道状态变化 打开或关闭
+	function handleReceiveChannelStatusChange(event) {
+		if (receiveChannel) {
+			console.log("Receive channel's status has changed to " +
+				receiveChannel.readyState);
+		}
+	}
+
+	function sendMessage() {
+		var message = messageInputBox.value;
+		sendChannel.send(message);
+
+		messageInputBox.value = "";
+		messageInputBox.focus();
+	}
+
+	//远程通道接收到数据时
+	function handleReceiveMessage(event) {
+		// console.log('远程通道收到的数据' + event.data);
+		var el = document.createElement("p");
+		var txtNode = document.createTextNode(event.data);
+
+		el.appendChild(txtNode);
+		receiveBox.appendChild(el);
+	}
+
+	function disconnectPeers() {
+
+		// Close the RTCDataChannels if they're open.
+
+		sendChannel.close();
+		receiveChannel.close();
+
+		// Close the RTCPeerConnections
+
+		localConnection.close();
+		remoteConnection.close();
+
+		sendChannel = null;
+		receiveChannel = null;
+		localConnection = null;
+		remoteConnection = null;
+
+		// Update user interface elements
+
+		connectButton.disabled = false;
+		disconnectButton.disabled = true;
+		sendButton.disabled = true;
+
+		messageInputBox.value = "";
+		messageInputBox.disabled = true;
+	}
+
+	function handleCatch(e) {
+		console.error(e);
+	}
+</script>
+
+<body onload="startup()">
+	<!-- <video id="remoteVideo" width="500" height="500" controls onclick="createWebRtcLink()"></video> -->
+	<button id="connectButton" name="connectButton" class="buttonleft">
+		Connect
+	</button>
+	<button id="disconnectButton" name="disconnectButton" class="buttonright" disabled>
+		Disconnect
+	</button>
+	<div class="messagebox">
+		<label for="message">Enter a message:
+			<input type="text" name="message" id="message" placeholder="Message text" inputmode="latin" size=60
+				maxlength=120 disabled>
+		</label>
+		<button id="sendButton" name="sendButton" class="buttonright" disabled>
+			Send
+		</button>
+	</div>
+	<div class="messagebox" id="receivebox">
+		<p>Messages received:</p>
+	</div>
+</body>
+
+</html>

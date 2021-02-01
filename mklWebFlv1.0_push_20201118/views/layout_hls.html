@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="cache-control" content="no-cache">
+	<meta http-equiv="pragma" content="no-cache">
+	<meta http-equiv="expires" content="0">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>hlsPlay</title>
+	<script src="/js/hls.js"></script>
+	<script src="/js/jquery-3.1.1.js"></script>
+
+	<script>
+		function play(videoId,token) {
+			$.ajax({
+				type: 'post',
+				url: '/playhls',
+				data:{
+					token:token
+				},
+				success: function (result) {
+					result = result || {};
+					result.p === 1&&result.url ? loadVideo(result.url) : console.log('error');
+				},
+				error: function (error) {
+					console.error(error);
+				}
+			});
+
+			function loadVideo(url) {
+				var video = document.getElementById(videoId);
+				if (Hls.isSupported()) {
+					var hls = new Hls();
+					hls.loadSource(url);
+					hls.attachMedia(video);
+					hls.on(Hls.Events.MANIFEST_PARSED, function () {
+						video.play();
+					});
+				} else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+					video.src = url;
+					video.addEventListener('loadedmetadata', function () {
+						video.play();
+					});
+				}
+			}
+		};
+	</script>
+
+</head>
+
+<body onload="document.getElementById('butPlay1').click()">
+	<video id="video" width="500" height="500" controls muted></video>
+	<button onclick="play('video','dahua1')" id="butPlay1">播放</button>
+
+	<video id="video2" width="500" height="500" controls></video>
+	<button onclick="play('video2','dahua2')">播放</button>
+
+	<video id="video3" width="500" height="500" controls></video>
+	<button onclick="play('video3','dahua3')">播放</button>
+
+	<video id="video4" width="500" height="500" controls></video>
+	<button onclick="play('video4','dahua4')">播放</button>
+
+	<video id="video5" width="500" height="500" controls></video>
+	<button onclick="play('video5','dahua5')">播放</button>
+
+	<video id="video6" width="500" height="500" controls></video>
+	<button onclick="play('video6','dahua6')">播放</button>
+</body>
+
+</html>
