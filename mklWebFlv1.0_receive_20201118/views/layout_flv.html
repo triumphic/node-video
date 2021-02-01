@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="cache-control" content="no-cache">
+	<meta http-equiv="pragma" content="no-cache">
+	<meta http-equiv="expires" content="0">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>flvPlay 不要关</title>
+	<!-- <script src="/js/flv.min.js"></script> -->
+	<script src="./js/flv.js"></script>
+	<script src="./js/jquery-3.1.1.js"></script>
+
+	<script>
+		function play(videoId, token) {
+			getPlayUrl();
+
+			function getPlayUrl() {
+				// return loadVideo('http://localhost:84/live/sheb_kj_1.flv');
+				$.ajax({
+					type: 'post',
+					url: './playflv',
+					data: {
+						token: token
+					},
+					success: function (result) {
+						result = result || {};
+						result.p === 1 && result.url ? loadVideo(result.url) : console.log('error');
+					},
+					error: function (error) {
+						console.error(error);
+					}
+				});
+			};
+
+			function loadVideo(url) {
+				var videoElement = document.getElementById(videoId);
+				var proName = 'flv' + videoId;
+				//已经存在时，说明不是第一次创建
+				if (!window[proName]) {
+					videoElement.addEventListener('ended', function () {
+						var currDate = new Date();
+						console.log(currDate.getHours() + '点' + currDate.getMinutes() + '分播放完成');
+						window[proName].destroy();
+						getPlayUrl();
+					});
+				}
+				if (flvjs.isSupported()) {
+					window[proName] = flvjs.createPlayer({
+						type: 'flv',
+						url: url
+					});
+					//window.flvPlayer = flvPlayer;
+					window[proName].attachMediaElement(videoElement);
+					window[proName].load();
+					window[proName].play();
+
+
+					// var videoElement = document.getElementById('videoElement');
+					// var flvPlayer = flvjs.createPlayer({
+					// 	type: 'flv',
+					// 	url: 'ws://localhost:8000/live/STREAM_NAME.flv'
+					// });
+					// flvPlayer.attachMediaElement(videoElement);
+					// flvPlayer.load();
+					// flvPlayer.play();
+				}
+			}
+		};
+
+		function stopPlay(videoId, token) {
+			var proName = 'flv' + videoId;
+			//window[proName].unload();
+			window[proName].pause();
+
+			$.ajax({
+				type: 'post',
+				url: '/stopplay',
+				data: {
+					token: token
+				},
+				success: function (result) {
+					if ((result || {}).r == 1)
+						console.log('暂停成功');
+					else
+						console.log('暂停失败');
+				},
+				error: function (error) {
+					console.error(error);
+				}
+			});
+		};
+
+		function windClo() { 
+			stopPlay('video','sheb_kj_1');
+			stopPlay('video2','sheb_kj_2');
+			stopPlay('video3','dahua3');
+			stopPlay('video4','dahua4');
+			stopPlay('video5','dahua5');
+			stopPlay('video6','dahua6');
+			stopPlay('video7','dahua7');
+			stopPlay('video8','dahua8');
+			stopPlay('video9','dahua9');
+		};
+	</script>
+
+</head>
+
+<body onload="document.getElementById('butPlay1').click()" onbeforeunload="windClo()">
+	<video id="video" width="500" height="500" controls muted></video>
+	<button onclick="play('video','sheb_kj_1')" id="butPlay1">播放1</button>
+	<button onclick="stopPlay('video','sheb_kj_1')" id="butPlay1">停止播放1</button>
+
+	<video id="video2" width="500" height="500" controls></video>
+	<button onclick="play('video2','sheb_kj_2')">播放2</button>
+	<button onclick="stopPlay('video2','sheb_kj_2')" id="butPlay1">停止播放2</button>
+</body>
+
+</html>
